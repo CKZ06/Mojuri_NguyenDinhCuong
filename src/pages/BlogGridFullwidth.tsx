@@ -1,8 +1,17 @@
 import type { CSSProperties } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { apiRequest } from '../lib/api'
+import type { BlogPost } from '../types/api'
 
 export const BlogGridFullwidthBodyClass = 'blog'
 
 export default function BlogGridFullwidth() {
+  const { data: posts = [], isLoading, error } = useQuery({
+    queryKey: ['posts', 'mojuri-template'],
+    queryFn: () => apiRequest<BlogPost[]>('/posts'),
+  })
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -758,7 +767,27 @@ export default function BlogGridFullwidth() {
                 <div className="section-padding">
                   <div className="section-container p-l-r">
                     <div className="posts-list grid">
-                      <div className="row">
+                      {isLoading && <p className="mojuri-api-state">Đang tải bài viết...</p>}
+                      {error && <p className="mojuri-api-state error">{error instanceof Error ? error.message : 'Không thể tải bài viết'}</p>}
+                      <div className="row mojuri-api-blog-posts">
+                        {posts.map((post) => (
+                          <div className="col-xl-3 col-lg-4 col-md-4 col-sm-6" key={post._id}>
+                            <div className="post-entry clearfix post-wapper">
+                              <div className="post-image">
+                                <Link to={`/blog/${post.slug}`}><img src={post.thumbnail} alt={post.title} /></Link>
+                              </div>
+                              <div className="post-content">
+                                <div className="post-categories">{post.category}</div>
+                                <h2 className="post-title"><Link to={`/blog/${post.slug}`}>{post.title}</Link></h2>
+                                <div className="post-meta">
+                                  <span className="post-time">{new Date(post.publishedAt ?? post.createdAt).toLocaleDateString('vi-VN')}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="row template-static-blog">
                         <div className="col-xl-3 col-lg-4 col-md-4 col-sm-6">
                           <div className="post-entry clearfix post-wapper">
                             <div className="post-image">

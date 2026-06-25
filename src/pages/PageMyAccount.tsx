@@ -1,8 +1,32 @@
+import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { apiRequest } from '../lib/api'
+import type { Order } from '../types/api'
 
 export const PageMyAccountBodyClass = 'blog'
 
 export default function PageMyAccount() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['account', 'orders', user?.id ?? user?._id],
+    queryFn: () => apiRequest<Order[]>('/orders'),
+    enabled: Boolean(user),
+  })
+  const latestOrder = orders[0]
+
+  useEffect(() => {
+    if (!user) navigate('/login', { replace: true })
+  }, [navigate, user])
+
+  function handleLogout() {
+    logout()
+    navigate('/', { replace: true })
+  }
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -782,9 +806,9 @@ export default function PageMyAccount() {
                               </a>
                             </li>
                             <li className="nav-item">
-                              <a className="nav-link" href="page-login.html">
+                              <button className="nav-link account-logout-link" type="button" onClick={handleLogout}>
                                 Logout
-                              </a>
+                              </button>
                             </li>
                           </ul>
                         </nav>
@@ -792,18 +816,18 @@ export default function PageMyAccount() {
                           <div className="tab-pane fade show active" id="dashboard" role="tabpanel">
                             <div className="my-account-dashboard">
                               <p>
-                                Hello
+                                Hello{' '}
                                 <strong>
-                                  Rosie
+                                  {user?.name}
                                 </strong>
-                                (not
+                                {' '}(not{' '}
                                 <strong>
-                                  Rosie
+                                  {user?.name}
                                 </strong>
-                                ?
-                                <a href="page-login.html">
+                                ?{' '}
+                                <button type="button" className="account-inline-link" onClick={handleLogout}>
                                   Log out
-                                </a>
+                                </button>
                                 )
                               </p>
                               <p>
@@ -847,63 +871,17 @@ export default function PageMyAccount() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    <tr>
-                                      <td>
-                                        #1357
-                                      </td>
-                                      <td>
-                                        March 45, 2020
-                                      </td>
-                                      <td>
-                                        Processing
-                                      </td>
-                                      <td>
-                                        $125.00 for 2 item
-                                      </td>
-                                      <td>
-                                        <a href="#" className="btn-small d-block">
-                                          View
-                                        </a>
-                                      </td>
-                                    </tr>
-                                    <tr>
-                                      <td>
-                                        #2468
-                                      </td>
-                                      <td>
-                                        June 29, 2020
-                                      </td>
-                                      <td>
-                                        Completed
-                                      </td>
-                                      <td>
-                                        $364.00 for 5 item
-                                      </td>
-                                      <td>
-                                        <a href="#" className="btn-small d-block">
-                                          View
-                                        </a>
-                                      </td>
-                                    </tr>
-                                    <tr>
-                                      <td>
-                                        #2366
-                                      </td>
-                                      <td>
-                                        August 02, 2020
-                                      </td>
-                                      <td>
-                                        Completed
-                                      </td>
-                                      <td>
-                                        $280.00 for 3 item
-                                      </td>
-                                      <td>
-                                        <a href="#" className="btn-small d-block">
-                                          View
-                                        </a>
-                                      </td>
-                                    </tr>
+                                    {orders.map((order) => (
+                                      <tr key={order._id}>
+                                        <td>#{order._id.slice(-8).toUpperCase()}</td>
+                                        <td>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</td>
+                                        <td>{order.status}</td>
+                                        <td>${order.total.toFixed(2)} for {order.items.reduce((sum, item) => sum + item.quantity, 0)} item(s)</td>
+                                        <td><a href="/track-order" className="btn-small d-block">Track</a></td>
+                                      </tr>
+                                    ))}
+                                    {!ordersLoading && orders.length === 0 && <tr><td colSpan={5}>Bạn chưa có đơn hàng nào.</td></tr>}
+                                    {ordersLoading && <tr><td colSpan={5}>Đang tải đơn hàng...</td></tr>}
                                   </tbody>
                                 </table>
                               </div>
@@ -924,15 +902,7 @@ export default function PageMyAccount() {
                                       Edit
                                     </a>
                                   </header>
-                                  <address>
-                                    3522 Interstate
-                                    <br />
-                                    75 Business Spur,
-                                    <br />
-                                    Sault Ste.
-                                    <br />
-                                    Marie, MI 49783
-                                  </address>
+                                  <address>{latestOrder?.customer.address ?? 'Chưa có địa chỉ thanh toán.'}</address>
                                 </div>
                                 <div className="addresses-col">
                                   <header className="col-title">
@@ -944,13 +914,8 @@ export default function PageMyAccount() {
                                     </a>
                                   </header>
                                   <address>
-                                    4299 Express Lane
-                                    <br />
-                                    Sarasota,
-                                    <br />
-                                    FL 34249 USA
-                                    <br />
-                                    Phone: 1.941.227.4444
+                                    {latestOrder?.customer.address ?? 'Chưa có địa chỉ giao hàng.'}
+                                    {latestOrder?.customer.phone && <><br />Phone: {latestOrder.customer.phone}</>}
                                   </address>
                                 </div>
                               </div>
@@ -958,7 +923,7 @@ export default function PageMyAccount() {
                           </div>
                           <div className="tab-pane fade" id="account-details" role="tabpanel">
                             <div className="my-account-account-details">
-                              <form className="edit-account" action="#" method="post">
+                              <form className="edit-account" onSubmit={(event) => event.preventDefault()}>
                                 <p className="form-row">
                                   <label htmlFor="account_first_name">
                                     First name
@@ -966,7 +931,7 @@ export default function PageMyAccount() {
                                       *
                                     </span>
                                   </label>
-                                  <input type="text" className="input-text" name="account_first_name" />
+                                  <input type="text" className="input-text" name="account_first_name" value={user?.name ?? ''} readOnly />
                                 </p>
                                 <p className="form-row">
                                   <label>
@@ -975,7 +940,7 @@ export default function PageMyAccount() {
                                       *
                                     </span>
                                   </label>
-                                  <input type="text" className="input-text" name="account_last_name" />
+                                  <input type="text" className="input-text" name="account_last_name" value="" readOnly />
                                 </p>
                                 <div className="clear"></div>
                                 <p className="form-row">
@@ -985,7 +950,7 @@ export default function PageMyAccount() {
                                       *
                                     </span>
                                   </label>
-                                  <input type="text" className="input-text" name="account_display_name" />
+                                  <input type="text" className="input-text" name="account_display_name" value={user?.name ?? ''} readOnly />
                                   <span>
                                     <em>
                                       This will be how your name will be displayed in the account section and in reviews
@@ -1000,9 +965,9 @@ export default function PageMyAccount() {
                                       *
                                     </span>
                                   </label>
-                                  <input type="email" className="input-text" name="account_email" />
+                                  <input type="email" className="input-text" name="account_email" value={user?.email ?? ''} readOnly />
                                 </p>
-                                <fieldset>
+                                <fieldset className="template-static-account-password">
                                   <legend>
                                     Password change
                                   </legend>
@@ -1027,9 +992,7 @@ export default function PageMyAccount() {
                                 </fieldset>
                                 <div className="clear"></div>
                                 <p className="form-row">
-                                  <button type="submit" className="button" name="save_account_details" value="Save changes">
-                                    Save changes
-                                  </button>
+                                  <span>Thông tin tài khoản được quản lý bởi hệ thống đăng nhập.</span>
                                 </p>
                               </form>
                             </div>

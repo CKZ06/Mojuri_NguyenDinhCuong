@@ -1,8 +1,19 @@
 import type { CSSProperties } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
+import { apiRequest } from '../lib/api'
+import type { BlogPost } from '../types/api'
 
 export const BlogDetailsFullwidthBodyClass = 'blog'
 
 export default function BlogDetailsFullwidth() {
+  const { slug = '' } = useParams()
+  const { data: post, isLoading, error } = useQuery({
+    queryKey: ['post', slug, 'mojuri-template'],
+    queryFn: () => apiRequest<BlogPost>(`/posts/${slug}`),
+    enabled: Boolean(slug),
+  })
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -758,6 +769,19 @@ export default function BlogDetailsFullwidth() {
                 <div className="section-padding">
                   <div className="section-container p-l-r">
                     <div className="post-details no-sidebar">
+                      <div className="mojuri-api-blog-detail">
+                        {isLoading && <p className="mojuri-api-state">Đang tải bài viết...</p>}
+                        {error && <p className="mojuri-api-state error">{error instanceof Error ? error.message : 'Không thể tải bài viết'}</p>}
+                        {post && <>
+                          <div className="post-image"><img src={post.thumbnail} alt={post.title} /></div>
+                          <h2 className="post-title">{post.title}</h2>
+                          <div className="post-meta">
+                            <span className="post-categories"><i className="icon_folder-alt"></i>{post.category}</span>
+                            <span className="post-time"><i className="icon_clock_alt"></i>{new Date(post.publishedAt ?? post.createdAt).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                          <div className="post-content clearfix" dangerouslySetInnerHTML={{ __html: post.content }} />
+                        </>}
+                      </div>
                       <div className="post-image">
                         <img src="media/blog/1.jpg" alt="" />
                       </div>

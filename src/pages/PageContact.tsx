@@ -1,8 +1,41 @@
-import type { CSSProperties } from 'react'
+import { useState } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { apiRequest } from '../lib/api'
+import type { ContactMessage } from '../types/api'
 
 export const PageContactBodyClass = 'page'
 
 export default function PageContact() {
+  const { user } = useAuth()
+  const [notice, setNotice] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    setSubmitting(true)
+    setNotice('')
+    try {
+      await apiRequest<ContactMessage>('/contacts', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.get('name'),
+          email: form.get('email'),
+          subject: form.get('subject'),
+          message: form.get('message'),
+        }),
+      })
+      setNotice('Tin nhắn đã được gửi. Mojuri sẽ liên hệ với bạn sớm nhất.')
+      formElement.reset()
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Không thể gửi tin nhắn')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -855,7 +888,7 @@ export default function PageContact() {
                             </div>
                           </div>
                           <div className="block-content">
-                            <form action="#" method="post" className="contact-form" noValidate>
+                            <form method="post" className="contact-form" onSubmit={handleSubmit}>
                               <div className="contact-us-form">
                                 <div className="row">
                                   <div className="col-sm-12 col-md-6">
@@ -864,7 +897,7 @@ export default function PageContact() {
                                     </label>
                                     <br />
                                     <span className="form-control-wrap">
-                                      <input type="text" name="name" value="" size={40} className="form-control" aria-required="true" />
+                                      <input type="text" name="name" defaultValue={user?.name ?? ''} readOnly={Boolean(user)} size={40} className="form-control" required />
                                     </span>
                                   </div>
                                   <div className="col-sm-12 col-md-6">
@@ -873,7 +906,16 @@ export default function PageContact() {
                                     </label>
                                     <br />
                                     <span className="form-control-wrap">
-                                      <input type="email" name="email" value="" size={40} className="form-control" aria-required="true" />
+                                      <input type="email" name="email" defaultValue={user?.email ?? ''} readOnly={Boolean(user)} size={40} className="form-control" required />
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="row">
+                                  <div className="col-sm-12">
+                                    <label className="required">Subject</label>
+                                    <br />
+                                    <span className="form-control-wrap">
+                                      <input type="text" name="subject" size={40} className="form-control" required />
                                     </span>
                                   </div>
                                 </div>
@@ -884,13 +926,14 @@ export default function PageContact() {
                                     </label>
                                     <br />
                                     <span className="form-control-wrap">
-                                      <textarea name="message" cols={40} rows={10} className="form-control" aria-required="true"></textarea>
+                                      <textarea name="message" cols={40} rows={10} className="form-control" minLength={2} required></textarea>
                                     </span>
                                   </div>
                                 </div>
                                 <div className="form-button">
-                                  <input type="submit" value="Submit" className="button" />
+                                  <input type="submit" value={submitting ? 'Sending...' : 'Submit'} className="button" disabled={submitting} />
                                 </div>
+                                {notice && <p className="mojuri-contact-notice">{notice}</p>}
                               </div>
                             </form>
                           </div>

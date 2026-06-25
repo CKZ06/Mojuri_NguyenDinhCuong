@@ -1,8 +1,23 @@
 import type { CSSProperties } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
+import MojuriProductCard from '../components/MojuriProductCard'
+import { useCart } from '../contexts/CartContext'
+import { apiRequest } from '../lib/api'
+import type { Product } from '../types/api'
 
 export const ShopDetailsBodyClass = 'shop'
 
 export default function ShopDetails() {
+  const { id = '' } = useParams()
+  const [quantity, setQuantity] = useState(1)
+  const { add, count } = useCart()
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ['product', id],
+    queryFn: () => apiRequest<Product>(`/products/${id}`),
+    enabled: Boolean(id),
+  })
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -31,7 +46,7 @@ export default function ShopDetails() {
                           <div className="icons-cart">
                             <i className="icon-large-paper-bag"></i>
                             <span className="cart-count">
-                              2
+                              {count}
                             </span>
                           </div>
                         </a>
@@ -635,7 +650,7 @@ export default function ShopDetails() {
                               <div className="icons-cart">
                                 <i className="icon-large-paper-bag"></i>
                                 <span className="cart-count">
-                                  2
+                                      {count}
                                 </span>
                               </div>
                             </a>
@@ -760,7 +775,42 @@ export default function ShopDetails() {
               </div>
               <div id="content" className="site-content" role="main">
                 <div className="shop-details zoom" data-product_layout_thumb="scroll" data-zoom_scroll="true" data-zoom_contain_lens="true" data-zoomtype="inner" data-lenssize="200" data-lensshape="square" data-lensborder="" data-bordersize="2" data-bordercolour="#f9b61e" data-popup="false">
-                  <div className="product-top-info">
+                  {isLoading && <div className="section-container p-l-r"><p>Loading product...</p></div>}
+                  {error && <div className="section-container p-l-r"><p className="auth-form-error">{error instanceof Error ? error.message : 'Unable to load product'}</p></div>}
+                  {product && (
+                    <div className="product-top-info">
+                      <div className="section-padding"><div className="section-container p-l-r"><div className="row">
+                        <div className="product-images col-lg-7 col-md-12 col-12">
+                          <div className="row">
+                            <div className="col-md-2"><div className="content-thumbnail-scroll"><div className="image-thumbnail">
+                              {[product.thumbnail, ...(product.images ?? [])].filter((image, index, list) => list.indexOf(image) === index).map((image) => (
+                                <div className="img-item" key={image}><span className="img-thumbnail-scroll"><img width={600} height={600} src={image} alt={product.name} /></span></div>
+                              ))}
+                            </div></div></div>
+                            <div className="col-md-10"><div className="scroll-image main-image"><div className="image-additional">
+                              <div className="img-item"><img width={900} height={900} src={product.thumbnail} alt={product.name} /></div>
+                            </div></div></div>
+                          </div>
+                        </div>
+                        <div className="product-info col-lg-5 col-md-12 col-12">
+                          <h1 className="title">{product.name}</h1>
+                          <span className="price">{product.salePrice && <del><span>${product.price.toFixed(2)}</span></del>}<ins><span>${(product.salePrice ?? product.price).toFixed(2)}</span></ins></span>
+                          <div className="rating"><div className={`star star-${Math.round(product.rating)}`} /><div className="review-count">({product.reviewCount} reviews)</div></div>
+                          <div className="description" dangerouslySetInnerHTML={{ __html: product.description || '<p>Fine jewelry from Mojuri.</p>' }} />
+                          <div className="buttons"><div className="add-to-cart-wrap">
+                            <div className="quantity">
+                              <button type="button" className="plus" onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}>+</button>
+                              <input type="number" className="qty" min={1} max={product.stock} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(product.stock, Number(event.target.value))))} />
+                              <button type="button" className="minus" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+                            </div>
+                            <div className="btn-add-to-cart"><button type="button" disabled={product.stock < 1} onClick={() => add(product, quantity)}>{product.stock > 0 ? 'Add to cart' : 'Out of stock'}</button></div>
+                          </div></div>
+                          <div className="product-meta"><span className="posted-in">Category: <strong>{product.category}</strong></span><span className="sku-wrapper">Stock: <strong>{product.stock}</strong></span></div>
+                        </div>
+                      </div></div></div>
+                    </div>
+                  )}
+                  <div className="product-top-info template-static-product">
                     <div className="section-padding">
                       <div className="section-container p-l-r">
                         <div className="row">
@@ -1119,7 +1169,14 @@ export default function ShopDetails() {
                       </div>
                     </div>
                   </div>
-                  <div className="product-related">
+                  {product?.related?.length ? (
+                    <div className="product-related">
+                      <div className="section-padding"><div className="section-container p-l-r"><div className="block block-products slider"><div className="block-title"><h2>Related Products</h2></div><div className="products-list grid"><div className="row">
+                        {product.related.map((item) => <MojuriProductCard key={item._id} product={item} onAdd={add} />)}
+                      </div></div></div></div></div>
+                    </div>
+                  ) : null}
+                  <div className="product-related template-static-product">
                     <div className="section-padding">
                       <div className="section-container p-l-r">
                         <div className="block block-products slider">

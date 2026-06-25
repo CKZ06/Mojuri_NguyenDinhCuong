@@ -1,8 +1,21 @@
 import type { CSSProperties } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import MojuriProductCard from '../components/MojuriProductCard'
+import { useCart } from '../contexts/CartContext'
+import { apiRequest } from '../lib/api'
+import type { Product } from '../types/api'
 
 export const ShopGridLeftBodyClass = 'shop'
 
 export default function ShopGridLeft() {
+  const [page, setPage] = useState(1)
+  const { add, count } = useCart()
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products', 'shop', page],
+    queryFn: () => apiRequest<{ items: Product[]; pagination: { page: number; pages: number; total: number } }>(`/products?page=${page}&limit=9`),
+    placeholderData: (previous) => previous,
+  })
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -31,7 +44,7 @@ export default function ShopGridLeft() {
                           <div className="icons-cart">
                             <i className="icon-large-paper-bag"></i>
                             <span className="cart-count">
-                              2
+                              {count}
                             </span>
                           </div>
                         </a>
@@ -809,7 +822,7 @@ export default function ShopGridLeft() {
                                   <a href="shop-grid-left.html">
                                     Rings
                                     <span className="count">
-                                      2
+                                      {count}
                                     </span>
                                   </a>
                                 </li>
@@ -1174,7 +1187,23 @@ export default function ShopGridLeft() {
                             </ul>
                           </div>
                         </div>
-                        <div className="tab-content">
+                        <div className="mojuri-api-products">
+                          {isLoading && <p>Loading products...</p>}
+                          {error && <p className="auth-form-error">{error instanceof Error ? error.message : 'Unable to load products'}</p>}
+                          <div className="products-list grid"><div className="row">
+                            {data?.items.map((product) => <MojuriProductCard key={product._id} product={product} onAdd={add} />)}
+                          </div></div>
+                          {(data?.pagination.pages ?? 0) > 1 && (
+                            <nav className="woocommerce-pagination">
+                              <ul className="page-numbers">
+                                {Array.from({ length: data?.pagination.pages ?? 0 }, (_, index) => index + 1).map((number) => (
+                                  <li key={number}><button type="button" className={number === page ? 'page-numbers current' : 'page-numbers'} onClick={() => setPage(number)}>{number}</button></li>
+                                ))}
+                              </ul>
+                            </nav>
+                          )}
+                        </div>
+                        <div className="tab-content template-static-products">
                           <div className="tab-pane fade show active" id="layout-grid" role="tabpanel">
                             <div className="products-list grid">
                               <div className="row">

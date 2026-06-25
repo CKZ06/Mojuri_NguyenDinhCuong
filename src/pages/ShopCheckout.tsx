@@ -1,8 +1,66 @@
-import type { CSSProperties } from 'react'
+import { useState } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { useCart } from '../contexts/CartContext'
+import { apiRequest } from '../lib/api'
+import type { Order } from '../types/api'
 
 export const ShopCheckoutBodyClass = 'shop'
 
 export default function ShopCheckout() {
+  const { user } = useAuth()
+  const { items, subtotal, clear } = useCart()
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null)
+  const shippingFee = items.length === 0 || subtotal >= 400 ? 0 : 20
+
+  async function handleCheckout(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (items.length === 0) {
+      setError('Your cart is empty.')
+      return
+    }
+
+    const form = new FormData(event.currentTarget)
+    const address = [
+      form.get('billing_address_1'),
+      form.get('billing_address_2'),
+      form.get('billing_city'),
+      form.get('billing_state'),
+      form.get('billing_country'),
+    ].filter(Boolean).join(', ')
+
+    setSubmitting(true)
+    setError('')
+    try {
+      const order = await apiRequest<Order>('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          customer: {
+            name: `${form.get('billing_first_name')} ${form.get('billing_last_name')}`.trim(),
+            email: form.get('billing_email'),
+            phone: form.get('billing_phone'),
+            address,
+            note: form.get('order_comments'),
+          },
+          paymentMethod: form.get('payment_method') === 'bank' ? 'bank' : 'cod',
+          items: items.map((item) => ({
+            product: item.product._id,
+            quantity: item.quantity,
+          })),
+        }),
+      })
+      setCreatedOrder(order)
+      clear()
+      window.scrollTo(0, 0)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to create order.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -762,7 +820,16 @@ export default function ShopCheckout() {
                 <div className="section-padding">
                   <div className="section-container p-l-r">
                     <div className="shop-checkout">
-                      <form name="checkout" method="post" className="checkout" action="#" autoComplete="off">
+                      {createdOrder && (
+                        <div className="checkout-order-success">
+                          <h2>Thank you. Your order has been received.</h2>
+                          <p>Order ID: <strong>{createdOrder._id}</strong></p>
+                          <p>Total: <strong>${createdOrder.total.toFixed(2)}</strong></p>
+                          <p>Status: <strong>{createdOrder.status}</strong></p>
+                          <a className="button" href="/track-order">Track your order</a>
+                        </div>
+                      )}
+                      {!createdOrder && <form name="checkout" method="post" className="checkout" autoComplete="off" onSubmit={handleCheckout}>
                         <div className="row">
                           <div className="col-xl-8 col-lg-7 col-md-12 col-12">
                             <div className="customer-details">
@@ -779,7 +846,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_first_name" value="" />
+                                      <input type="text" className="input-text" name="billing_first_name" defaultValue={user?.name?.split(' ')[0] ?? ''} required />
                                     </span>
                                   </p>
                                   <p className="form-row form-row-last validate-required">
@@ -790,7 +857,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_last_name" value="" />
+                                      <input type="text" className="input-text" name="billing_last_name" defaultValue={user?.name?.split(' ').slice(1).join(' ') ?? ''} required />
                                     </span>
                                   </p>
                                   <p className="form-row form-row-wide">
@@ -801,7 +868,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_company" value="" />
+                                      <input type="text" className="input-text" name="billing_company" defaultValue="" />
                                     </span>
                                   </p>
                                   <p className="form-row form-row-wide validate-required">
@@ -845,7 +912,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_address_1" placeholder="House number and street name" value="" />
+                                      <input type="text" className="input-text" name="billing_address_1" placeholder="House number and street name" defaultValue="" required />
                                     </span>
                                   </p>
                                   <p className="form-row address-field form-row-wide">
@@ -856,7 +923,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_address_2" placeholder="Apartment, suite, unit, etc. (optional)" value="" />
+                                      <input type="text" className="input-text" name="billing_address_2" placeholder="Apartment, suite, unit, etc. (optional)" defaultValue="" />
                                     </span>
                                   </p>
                                   <p className="form-row address-field validate-required form-row-wide">
@@ -867,7 +934,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_city" value="" />
+                                      <input type="text" className="input-text" name="billing_city" defaultValue="" required />
                                     </span>
                                   </p>
                                   <p className="form-row address-field validate-required validate-state form-row-wide">
@@ -908,7 +975,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="text" className="input-text" name="billing_postcode" value="" />
+                                      <input type="text" className="input-text" name="billing_postcode" defaultValue="" />
                                     </span>
                                   </p>
                                   <p className="form-row form-row-wide validate-required validate-phone">
@@ -919,7 +986,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="tel" className="input-text" name="billing_phone" value="" />
+                                      <input type="tel" className="input-text" name="billing_phone" defaultValue="" required />
                                     </span>
                                   </p>
                                   <p className="form-row form-row-wide validate-required validate-email">
@@ -930,7 +997,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </label>
                                     <span className="input-wrapper">
-                                      <input type="email" className="input-text" name="billing_email" value="" autoComplete="off" />
+                                      <input type="email" className="input-text" name="billing_email" defaultValue={user?.email ?? ''} autoComplete="email" required />
                                     </span>
                                   </p>
                                 </div>
@@ -1131,6 +1198,19 @@ export default function ShopCheckout() {
                                   Product
                                 </h3>
                                 <div className="cart-items">
+                                  {items.map(({ product, quantity }) => {
+                                    const price = product.salePrice ?? product.price
+                                    return (
+                                      <div className="cart-item mojuri-checkout-item" key={product._id}>
+                                        <div className="info-product">
+                                          <div className="product-thumbnail"><img width={600} height={600} src={product.thumbnail} alt={product.name} /></div>
+                                          <div className="product-name">{product.name}<strong className="product-quantity">QTY : {quantity}</strong></div>
+                                        </div>
+                                        <div className="product-total"><span>${(price * quantity).toFixed(2)}</span></div>
+                                      </div>
+                                    )
+                                  })}
+                                  <div className="template-static-checkout">
                                   <div className="cart-item">
                                     <div className="info-product">
                                       <div className="product-thumbnail">
@@ -1167,6 +1247,7 @@ export default function ShopCheckout() {
                                       </span>
                                     </div>
                                   </div>
+                                  </div>
                                 </div>
                                 <div className="cart-subtotal">
                                   <h2>
@@ -1174,7 +1255,7 @@ export default function ShopCheckout() {
                                   </h2>
                                   <div className="subtotal-price">
                                     <span>
-                                      $480.00
+                                      ${subtotal.toFixed(2)}
                                     </span>
                                   </div>
                                 </div>
@@ -1185,9 +1266,9 @@ export default function ShopCheckout() {
                                   <div data-title="Shipping">
                                     <ul className="shipping-methods custom-radio">
                                       <li>
-                                        <input type="radio" name="shipping_method" data-index="0" value="free_shipping" className="shipping_method" checked />
+                                        <input type="radio" name="shipping_method" data-index="0" value="free_shipping" className="shipping_method" defaultChecked />
                                         <label>
-                                          Free shipping
+                                          {shippingFee === 0 ? 'Free shipping' : `$${shippingFee.toFixed(2)} flat rate`}
                                         </label>
                                       </li>
                                       <li>
@@ -1206,7 +1287,7 @@ export default function ShopCheckout() {
                                   <div className="total-price">
                                     <strong>
                                       <span>
-                                        $480.00
+                                      ${(subtotal + shippingFee).toFixed(2)}
                                       </span>
                                     </strong>
                                   </div>
@@ -1215,7 +1296,7 @@ export default function ShopCheckout() {
                               <div id="payment" className="checkout-payment">
                                 <ul className="payment-methods methods custom-radio">
                                   <li className="payment-method">
-                                    <input type="radio" className="input-radio" name="payment_method" value="bacs" checked />
+                                    <input type="radio" className="input-radio" name="payment_method" value="bank" defaultChecked />
                                     <label htmlFor="payment_method_bacs">
                                       Direct bank transfer
                                     </label>
@@ -1263,15 +1344,16 @@ export default function ShopCheckout() {
                                   <div className="terms-and-conditions-wrapper">
                                     <div className="privacy-policy-text"></div>
                                   </div>
-                                  <button type="submit" className="button alt" name="checkout_place_order" value="Place order">
-                                    Place order
+                                  {error && <p className="auth-form-error">{error}</p>}
+                                  <button type="submit" className="button alt" name="checkout_place_order" value="Place order" disabled={submitting || items.length === 0}>
+                                    {submitting ? 'Placing order...' : 'Place order'}
                                   </button>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </form>
+                      </form>}
                     </div>
                   </div>
                 </div>

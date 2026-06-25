@@ -1,8 +1,61 @@
-import type { CSSProperties } from 'react'
+import { useState } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export const PageLoginBodyClass = 'page'
 
 export default function PageLogin() {
+  const { login, register } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [loginError, setLoginError] = useState('')
+  const [registerError, setRegisterError] = useState('')
+  const [submitting, setSubmitting] = useState<'login' | 'register' | null>(null)
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    event.nativeEvent.stopImmediatePropagation()
+    const form = new FormData(event.currentTarget)
+    setSubmitting('login')
+    setLoginError('')
+    try {
+      const user = await login(String(form.get('username')), String(form.get('password')))
+      const requestedPath = (location.state as { from?: string } | null)?.from
+      if (user.role === 'admin') {
+        navigate('/admin', { replace: true })
+        return
+      }
+      navigate(requestedPath ?? '/account', { replace: true })
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : 'Không thể đăng nhập')
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    event.nativeEvent.stopImmediatePropagation()
+    const form = new FormData(event.currentTarget)
+    setSubmitting('register')
+    setRegisterError('')
+    try {
+      await register(
+        String(form.get('name')),
+        String(form.get('email')),
+        String(form.get('password')),
+      )
+      navigate('/account', { replace: true })
+    } catch (error) {
+      setRegisterError(error instanceof Error ? error.message : 'Không thể đăng ký')
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -766,7 +819,7 @@ export default function PageLogin() {
                             </h2>
                             <div className="box-content">
                               <div className="form-login">
-                                <form method="post" className="login">
+                                <form method="post" className="login" onSubmit={handleLogin}>
                                   <div className="username">
                                     <label>
                                       Username or email address
@@ -774,7 +827,7 @@ export default function PageLogin() {
                                         *
                                       </span>
                                     </label>
-                                    <input type="text" className="input-text" name="username" id="username" />
+                                    <input type="email" className="input-text" name="username" id="username" required />
                                   </div>
                                   <div className="password">
                                     <label htmlFor="password">
@@ -783,7 +836,7 @@ export default function PageLogin() {
                                         *
                                       </span>
                                     </label>
-                                    <input className="input-text" type="password" name="password" />
+                                    <input className="input-text" type="password" name="password" minLength={3} required />
                                   </div>
                                   <div className="rememberme-lost">
                                     <div className="remember-me">
@@ -799,7 +852,14 @@ export default function PageLogin() {
                                     </div>
                                   </div>
                                   <div className="button-login">
-                                    <input type="submit" className="button" name="login" value="Login" />
+                                    {loginError && <p className="auth-form-error">{loginError}</p>}
+                                    <input
+                                      type="submit"
+                                      className="button"
+                                      name="login"
+                                      disabled={submitting !== null}
+                                      value={submitting === 'login' ? 'Logging in...' : 'Login'}
+                                    />
                                   </div>
                                 </form>
                               </div>
@@ -813,7 +873,16 @@ export default function PageLogin() {
                             </h2>
                             <div className="box-content">
                               <div className="form-register">
-                                <form method="post" className="register">
+                                <form method="post" className="register" onSubmit={handleRegister}>
+                                  <div className="username">
+                                    <label>
+                                      Full name
+                                      <span className="required">
+                                        *
+                                      </span>
+                                    </label>
+                                    <input type="text" className="input-text" name="name" minLength={2} required />
+                                  </div>
                                   <div className="email">
                                     <label>
                                       Email address
@@ -821,7 +890,7 @@ export default function PageLogin() {
                                         *
                                       </span>
                                     </label>
-                                    <input type="email" className="input-text" name="email" value="" />
+                                    <input type="email" className="input-text" name="email" required />
                                   </div>
                                   <div className="password">
                                     <label>
@@ -830,10 +899,17 @@ export default function PageLogin() {
                                         *
                                       </span>
                                     </label>
-                                    <input type="password" className="input-text" name="password" />
+                                    <input type="password" className="input-text" name="password" minLength={6} required />
                                   </div>
                                   <div className="button-register">
-                                    <input type="submit" className="button" name="register" value="Register" />
+                                    {registerError && <p className="auth-form-error">{registerError}</p>}
+                                    <input
+                                      type="submit"
+                                      className="button"
+                                      name="register"
+                                      disabled={submitting !== null}
+                                      value={submitting === 'register' ? 'Registering...' : 'Register'}
+                                    />
                                   </div>
                                 </form>
                               </div>

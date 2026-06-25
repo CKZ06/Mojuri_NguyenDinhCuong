@@ -1,4 +1,11 @@
-import { type CSSProperties, useState, useEffect } from 'react'
+import { type CSSProperties, type FormEvent, useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import MojuriProductCard from '../components/MojuriProductCard'
+import { useAuth } from '../contexts/AuthContext'
+import { useCart } from '../contexts/CartContext'
+import { apiRequest } from '../lib/api'
+import type { Product as ApiProduct } from '../types/api'
 
 export const HomeBodyClass = 'home'
 
@@ -15,6 +22,15 @@ interface Product {
 
 export default function Home() {
   const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
+  const [headerLoginError, setHeaderLoginError] = useState('')
+  const [headerLoginSubmitting, setHeaderLoginSubmitting] = useState(false)
+  const { login } = useAuth()
+  const { add, count } = useCart()
+  const navigate = useNavigate()
+  const { data: apiTrending } = useQuery({
+    queryKey: ['products', 'trending'],
+    queryFn: () => apiRequest<{ items: ApiProduct[] }>('/products?featured=true&limit=8'),
+  })
 
   useEffect(() => {
     // Giả lập gọi API
@@ -27,6 +43,23 @@ export default function Home() {
     ];
     setTrendingProducts(fakeApiProducts as any);
   }, []);
+
+  async function handleHeaderLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    event.nativeEvent.stopImmediatePropagation()
+    const form = new FormData(event.currentTarget)
+    setHeaderLoginSubmitting(true)
+    setHeaderLoginError('')
+    try {
+      const user = await login(String(form.get('username')), String(form.get('password')))
+      navigate(user.role === 'admin' ? '/admin' : '/account', { replace: true })
+    } catch (error) {
+      setHeaderLoginError(error instanceof Error ? error.message : 'Không thể đăng nhập')
+    } finally {
+      setHeaderLoginSubmitting(false)
+    }
+  }
 
   return (
     <>
@@ -56,7 +89,7 @@ export default function Home() {
                           <div className="icons-cart">
                             <i className="icon-large-paper-bag"></i>
                             <span className="cart-count">
-                              2
+                              {count}
                             </span>
                           </div>
                         </a>
@@ -584,17 +617,17 @@ export default function Home() {
                               <div className="active-login"></div>
                               <div className="box-content">
                                 <div className="form-login active">
-                                  <form id="login_ajax" method="post" className="login">
+                                  <form id="login_ajax" method="post" className="login" onSubmit={handleHeaderLogin}>
                                     <h2>
                                       Sign in
                                     </h2>
-                                    <p className="status"></p>
+                                    <p className={`status ${headerLoginError ? 'auth-form-error' : ''}`}>{headerLoginError}</p>
                                     <div className="content">
                                       <div className="username">
-                                        <input type="text" required className="input-text" name="username" id="username" placeholder="Your name" />
+                                        <input type="email" required className="input-text" name="username" id="username" placeholder="Email address" />
                                       </div>
                                       <div className="password">
-                                        <input className="input-text" required type="password" name="password" id="password" placeholder="Password" />
+                                        <input className="input-text" required type="password" name="password" id="password" minLength={3} placeholder="Password" />
                                       </div>
                                       <div className="rememberme-lost">
                                         <div className="rememberme">
@@ -610,7 +643,7 @@ export default function Home() {
                                         </div>
                                       </div>
                                       <div className="button-login">
-                                        <input type="submit" className="button" name="login" value="Login" />
+                                        <input type="submit" className="button" name="login" disabled={headerLoginSubmitting} value={headerLoginSubmitting ? 'Logging in...' : 'Login'} />
                                       </div>
                                       <div className="button-next-reregister">
                                         Create An Account
@@ -660,7 +693,7 @@ export default function Home() {
                               <div className="icons-cart">
                                 <i className="icon-large-paper-bag"></i>
                                 <span className="cart-count">
-                                  2
+                                      {count}
                                 </span>
                               </div>
                             </a>
@@ -1132,7 +1165,12 @@ export default function Home() {
                         <div className="block-content">
                           <div className="content-product-list slick-wrap">
                             <div className="slick-sliders products-list grid" data-slidestoscroll="true" data-dots="false" data-nav="1" data-columns4="1" data-columns3="2" data-columns2="2" data-columns1="3" data-columns1440="4" data-columns="4">
-                          {trendingProducts.map((product: any) => (
+                          {apiTrending?.items.map((product) => (
+                            <div key={product._id} className="item-product slick-slide">
+                              <div className="items"><MojuriProductCard product={product} onAdd={add} columnClass="" /></div>
+                            </div>
+                          ))}
+                          {!apiTrending && trendingProducts.map((product: any) => (
                             <div key={product.id} className="item-product slick-slide">
                               <div className="items">
                                 <div className="products-entry clearfix product-wapper">
