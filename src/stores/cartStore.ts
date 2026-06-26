@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { CART_STORAGE_KEY } from '../lib/shoppingState'
 import type { Product } from '../types/api'
 
 export type CartItem = { product: Product; quantity: number }
@@ -42,6 +43,6 @@ export const useCartStore = create<CartState>()(
         set({ items: [] })
       },
     }),
-    { name: 'mojuri-cart' },
+    { name: CART_STORAGE_KEY },
   ),
 )

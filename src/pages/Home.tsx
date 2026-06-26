@@ -1,48 +1,28 @@
-import { type CSSProperties, type FormEvent, useState, useEffect } from 'react'
+import { type CSSProperties, type FormEvent, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import MiniCartPopup from '../components/MiniCartPopup'
 import MojuriProductCard from '../components/MojuriProductCard'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
+import { useWishlistCount } from '../hooks/useWishlistCount'
 import { apiRequest } from '../lib/api'
 import type { Product as ApiProduct } from '../types/api'
 
 export const HomeBodyClass = 'home'
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  salePrice?: number;
-  thumbnail: string;
-  hoverImage: string;
-  rating: number;
-  reviewCount: number;
-}
-
 export default function Home() {
-  const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
   const [headerLoginError, setHeaderLoginError] = useState('')
   const [headerLoginSubmitting, setHeaderLoginSubmitting] = useState(false)
   const { login } = useAuth()
   const { add, count } = useCart()
+  const wishlistCount = useWishlistCount()
   const navigate = useNavigate()
-  const { data: apiTrending } = useQuery({
+  const { data: apiTrending, isLoading: trendingLoading, error: trendingError } = useQuery({
     queryKey: ['products', 'trending'],
-    queryFn: () => apiRequest<{ items: ApiProduct[] }>('/products?featured=true&limit=8'),
+    queryFn: () => apiRequest<{ items: ApiProduct[] }>('/products?limit=8'),
   })
 
-  useEffect(() => {
-    // Giả lập gọi API
-    const fakeApiProducts = [
-      { id: '1', name: 'Medium Flat Hoops', price: 100, thumbnail: 'media/product/1.jpg', hoverImage: 'media/product/1-2.jpg', rating: 0, reviewCount: 0, isHot: true },
-      { id: '2', name: 'Bold Pearl Hoop Earrings', price: 200, salePrice: 180, thumbnail: 'media/product/2.jpg', hoverImage: 'media/product/2-2.jpg', rating: 5, reviewCount: 1, isHot: true, onSale: -10 },
-      { id: '3', name: 'Twin Hoops', price: 150, thumbnail: 'media/product/3.jpg', hoverImage: 'media/product/3-2.jpg', rating: 0, reviewCount: 0, isHot: true },
-      { id: '4', name: 'Yilver And Turquoise Earrings', price: 150, salePrice: 100, thumbnail: 'media/product/4.jpg', hoverImage: 'media/product/4-2.jpg', rating: 4, reviewCount: 2, onSale: -33 },
-      { id: '5', name: 'Medium Flat Hoops', price: 150, salePrice: 140, thumbnail: 'media/product/13.jpg', hoverImage: 'media/product/13-2.jpg', rating: 5, reviewCount: 1, onSale: -7, isOutOfStock: true },
-    ];
-    setTrendingProducts(fakeApiProducts as any);
-  }, []);
 
   async function handleHeaderLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -88,12 +68,11 @@ export default function Home() {
                         <a className="dropdown-toggle cart-icon" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           <div className="icons-cart">
                             <i className="icon-large-paper-bag"></i>
-                            <span className="cart-count">
-                              {count}
-                            </span>
+                            {count > 0 && <span className="cart-count live-count">{count}</span>}
                           </div>
                         </a>
                         <div className="dropdown-menu cart-popup">
+                          <MiniCartPopup />
                           <div className="cart-empty-wrap">
                             <ul className="cart-list">
                               <li className="empty">
@@ -681,9 +660,7 @@ export default function Home() {
                           <a href="shop-wishlist.html">
                             <i className="icon-heart"></i>
                           </a>
-                          <span className="count-wishlist">
-                            1
-                          </span>
+                          {wishlistCount > 0 && <span className="count-wishlist live-count">{wishlistCount}</span>}
                         </div>
                         {/* Cart */}
                         <div className="mojuri-topcart dropdown light">
@@ -692,12 +669,11 @@ export default function Home() {
                             <a className="dropdown-toggle cart-icon" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <div className="icons-cart">
                                 <i className="icon-large-paper-bag"></i>
-                                <span className="cart-count">
-                                      {count}
-                                </span>
+                                {count > 0 && <span className="cart-count live-count">{count}</span>}
                               </div>
                             </a>
                             <div className="dropdown-menu cart-popup">
+                              <MiniCartPopup />
                               <div className="cart-empty-wrap">
                                 <ul className="cart-list">
                                   <li className="empty">
@@ -1165,55 +1141,12 @@ export default function Home() {
                         <div className="block-content">
                           <div className="content-product-list slick-wrap">
                             <div className="slick-sliders products-list grid" data-slidestoscroll="true" data-dots="false" data-nav="1" data-columns4="1" data-columns3="2" data-columns2="2" data-columns1="3" data-columns1440="4" data-columns="4">
+                          {trendingLoading && <div className="item-product slick-slide"><p>Loading products...</p></div>}
+                          {trendingError && <div className="item-product slick-slide"><p className="auth-form-error">{trendingError instanceof Error ? trendingError.message : 'Unable to load products'}</p></div>}
+                          {!trendingLoading && !trendingError && apiTrending?.items.length === 0 && <div className="item-product slick-slide"><p>No products yet.</p></div>}
                           {apiTrending?.items.map((product) => (
                             <div key={product._id} className="item-product slick-slide">
                               <div className="items"><MojuriProductCard product={product} onAdd={add} columnClass="" /></div>
-                            </div>
-                          ))}
-                          {!apiTrending && trendingProducts.map((product: any) => (
-                            <div key={product.id} className="item-product slick-slide">
-                              <div className="items">
-                                <div className="products-entry clearfix product-wapper">
-                                  <div className="products-thumb">
-                                    {product.isHot && <div className="product-lable"><div className="hot">Hot</div></div>}
-                                    {product.onSale && <div className="product-lable"><div className="onsale">{product.onSale}%</div></div>}
-                                    <div className="product-thumb-hover">
-                                      <a href={`/shop-details/${product.id}`}>
-                                        <img width={600} height={600} src={product.thumbnail} className="post-image" alt={product.name} />
-                                        <img width={600} height={600} src={product.hoverImage} className="hover-image back" alt={product.name} />
-                                      </a>
-                                    </div>
-                                    <div className="product-button">
-                                      <div className="btn-add-to-cart" data-title="Add to cart">
-                                        <a rel="nofollow" href="#" className="product-btn button">Add to cart</a>
-                                      </div>
-                                      <div className="btn-wishlist" data-title="Wishlist"><button className="product-btn">Add to wishlist</button></div>
-                                      <div className="btn-compare" data-title="Compare"><button className="product-btn">Compare</button></div>
-                                      <span className="product-quickview" data-title="Quick View"><a href="#" className="quickview quickview-button">Quick View <i className="icon-search"></i></a></span>
-                                    </div>
-                                    {product.isOutOfStock && <div className="product-stock"><span className="stock">Out Of Stock</span></div>}
-                                  </div>
-                                  <div className="products-content">
-                                    <div className="contents">
-                                      <div className="rating">
-                                        <div className={`star star-${product.rating}`}></div>
-                                        <span className="count">({product.reviewCount} review)</span>
-                                      </div>
-                                      <h3 className="product-title"><a href={`/shop-details/${product.id}`}>{product.name}</a></h3>
-                                      <span className="price">
-                                        {product.salePrice ? (
-                                          <>
-                                            <del aria-hidden="true"><span>${product.price.toFixed(2)}</span></del>
-                                            <ins><span>${product.salePrice.toFixed(2)}</span></ins>
-                                          </>
-                                        ) : (
-                                          `$${product.price.toFixed(2)}`
-                                        )}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
                             </div>
                           ))}
                             </div>

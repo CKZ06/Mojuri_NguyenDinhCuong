@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import MiniCartPopup from '../components/MiniCartPopup'
 import { useCart } from '../contexts/CartContext'
 
 export const ShopCartBodyClass = 'shop'
@@ -40,6 +41,7 @@ export default function ShopCart() {
                           </div>
                         </a>
                         <div className="dropdown-menu cart-popup">
+                          <MiniCartPopup />
                           <div className="cart-empty-wrap">
                             <ul className="cart-list">
                               <li className="empty">
@@ -644,6 +646,7 @@ export default function ShopCart() {
                               </div>
                             </a>
                             <div className="dropdown-menu cart-popup">
+                              <MiniCartPopup />
                               <div className="cart-empty-wrap">
                                 <ul className="cart-list">
                                   <li className="empty">
@@ -769,16 +772,16 @@ export default function ShopCart() {
                       {items.length > 0 && (
                         <div className="row mojuri-live-cart">
                           <div className="col-xl-8 col-lg-12 col-md-12 col-12">
-                            <div className="table-responsive"><table className="cart-items table" cellSpacing={0}>
+                            <div className="table-responsive"><table className="cart-items table live-cart-table" cellSpacing={0}>
                               <thead><tr><th className="product-thumbnail">Product</th><th className="product-price">Price</th><th className="product-quantity">Quantity</th><th className="product-subtotal">Subtotal</th><th className="product-remove" /></tr></thead>
                               <tbody>{items.map(({ product, quantity }) => {
                                 const price = product.salePrice ?? product.price
                                 return <tr className="cart-item" key={product._id}>
-                                  <td className="product-thumbnail"><Link to={`/product/${product._id}`}><img width={600} height={600} src={product.thumbnail} className="product-image" alt={product.name} /></Link><div className="product-name"><Link to={`/product/${product._id}`}>{product.name}</Link></div></td>
+                                  <td className="product-thumbnail"><div className="live-cart-product"><Link to={`/product/${product._id}`} className="live-cart-image"><img width={600} height={600} src={product.thumbnail} className="product-image" alt={product.name} /></Link><div className="product-name"><Link to={`/product/${product._id}`}>{product.name}</Link><span>{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</span></div></div></td>
                                   <td className="product-price"><span className="price">${price.toFixed(2)}</span></td>
-                                  <td className="product-quantity"><div className="quantity"><button type="button" className="minus" onClick={() => update(product._id, quantity - 1)}>-</button><input type="number" className="qty" min={1} max={product.stock} value={quantity} onChange={(event) => update(product._id, Number(event.target.value))} /><button type="button" className="plus" onClick={() => update(product._id, quantity + 1)}>+</button></div></td>
+                                  <td className="product-quantity"><div className="quantity live-cart-quantity"><button type="button" className="minus" onClick={() => update(product._id, quantity - 1)} aria-label={`Decrease ${product.name}`}>-</button><input type="number" className="qty" min={1} max={product.stock} value={quantity} onChange={(event) => update(product._id, Number(event.target.value))} aria-label={`${product.name} quantity`} /><button type="button" className="plus" onClick={() => update(product._id, quantity + 1)} aria-label={`Increase ${product.name}`}>+</button></div></td>
                                   <td className="product-subtotal"><span>${(price * quantity).toFixed(2)}</span></td>
-                                  <td className="product-remove"><button type="button" className="remove" onClick={() => remove(product._id)}>×</button></td>
+                                  <td className="product-remove"><button type="button" className="remove" onClick={() => remove(product._id)} aria-label={`Remove ${product.name}`}>x</button></td>
                                 </tr>
                               })}</tbody>
                             </table></div>

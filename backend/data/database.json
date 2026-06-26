@@ -33,7 +33,7 @@
         "/media/product/1.jpg",
         "/media/product/1-2.jpg"
       ],
-      "stock": 30,
+      "stock": 29,
       "featured": true,
       "category": "Earrings",
       "stockStatus": "in_stock",
@@ -42,7 +42,7 @@
       "isActive": true,
       "_id": "4d6554f7-fb0e-4dbd-bd92-d11f65feb473",
       "createdAt": "2026-06-25T02:11:18.816Z",
-      "updatedAt": "2026-06-25T02:11:18.816Z"
+      "updatedAt": "2026-06-26T03:16:19.215Z"
     },
     {
       "name": "Bold Pearl Hoop Earrings",
@@ -245,7 +245,36 @@
     }
   ],
   "reviews": [],
-  "orders": [],
+  "orders": [
+    {
+      "user": "ac314e2e-fe3d-4c6e-8f64-6ae25f67723d",
+      "customer": {
+        "name": "cuong nguyen",
+        "email": "cuong@gmail.com",
+        "phone": "313131313",
+        "address": "dâda, dâda, VN, AF",
+        "note": ""
+      },
+      "items": [
+        {
+          "product": "4d6554f7-fb0e-4dbd-bd92-d11f65feb473",
+          "name": "Medium Flat Hoops",
+          "price": 100,
+          "quantity": 1,
+          "thumbnail": "/media/product/1.jpg"
+        }
+      ],
+      "subtotal": 100,
+      "shippingFee": 20,
+      "total": 120,
+      "status": "pending",
+      "paymentMethod": "bank",
+      "paymentStatus": "unpaid",
+      "_id": "aeb23ea5-846c-4d1b-b287-7629c46fad9f",
+      "createdAt": "2026-06-26T03:16:19.213Z",
+      "updatedAt": "2026-06-26T03:16:19.213Z"
+    }
+  ],
   "contacts": [
     {
       "name": "cuong",

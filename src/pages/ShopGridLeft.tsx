@@ -1,8 +1,10 @@
 import type { CSSProperties } from 'react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import MiniCartPopup from '../components/MiniCartPopup'
 import MojuriProductCard from '../components/MojuriProductCard'
 import { useCart } from '../contexts/CartContext'
+import { useWishlistCount } from '../hooks/useWishlistCount'
 import { apiRequest } from '../lib/api'
 import type { Product } from '../types/api'
 
@@ -11,6 +13,7 @@ export const ShopGridLeftBodyClass = 'shop'
 export default function ShopGridLeft() {
   const [page, setPage] = useState(1)
   const { add, count } = useCart()
+  const wishlistCount = useWishlistCount()
   const { data, isLoading, error } = useQuery({
     queryKey: ['products', 'shop', page],
     queryFn: () => apiRequest<{ items: Product[]; pagination: { page: number; pages: number; total: number } }>(`/products?page=${page}&limit=9`),
@@ -43,12 +46,11 @@ export default function ShopGridLeft() {
                         <a className="dropdown-toggle cart-icon" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           <div className="icons-cart">
                             <i className="icon-large-paper-bag"></i>
-                            <span className="cart-count">
-                              {count}
-                            </span>
+                            {count > 0 && <span className="cart-count live-count">{count}</span>}
                           </div>
                         </a>
                         <div className="dropdown-menu cart-popup">
+                          <MiniCartPopup />
                           <div className="cart-empty-wrap">
                             <ul className="cart-list">
                               <li className="empty">
@@ -636,9 +638,7 @@ export default function ShopGridLeft() {
                           <a href="shop-wishlist.html">
                             <i className="icon-heart"></i>
                           </a>
-                          <span className="count-wishlist">
-                            1
-                          </span>
+                          {wishlistCount > 0 && <span className="count-wishlist live-count">{wishlistCount}</span>}
                         </div>
                         {/* Cart */}
                         <div className="mojuri-topcart dropdown light">
@@ -647,12 +647,11 @@ export default function ShopGridLeft() {
                             <a className="dropdown-toggle cart-icon" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <div className="icons-cart">
                                 <i className="icon-large-paper-bag"></i>
-                                <span className="cart-count">
-                                  2
-                                </span>
+                                {count > 0 && <span className="cart-count live-count">{count}</span>}
                               </div>
                             </a>
                             <div className="dropdown-menu cart-popup">
+                              <MiniCartPopup />
                               <div className="cart-empty-wrap">
                                 <ul className="cart-list">
                                   <li className="empty">

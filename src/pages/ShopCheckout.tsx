@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { apiRequest } from '../lib/api'
+import MiniCartPopup from '../components/MiniCartPopup'
 import type { Order } from '../types/api'
 
 export const ShopCheckoutBodyClass = 'shop'
@@ -94,6 +95,7 @@ export default function ShopCheckout() {
                           </div>
                         </a>
                         <div className="dropdown-menu cart-popup">
+                          <MiniCartPopup />
                           <div className="cart-empty-wrap">
                             <ul className="cart-list">
                               <li className="empty">
@@ -698,6 +700,7 @@ export default function ShopCheckout() {
                               </div>
                             </a>
                             <div className="dropdown-menu cart-popup">
+                              <MiniCartPopup />
                               <div className="cart-empty-wrap">
                                 <ul className="cart-list">
                                   <li className="empty">

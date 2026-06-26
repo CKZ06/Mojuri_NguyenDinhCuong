@@ -1,8 +1,56 @@
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
+import MiniCartPopup from '../components/MiniCartPopup'
+import { useCart } from '../contexts/CartContext'
+import { useWishlistCount } from '../hooks/useWishlistCount'
+import { notifyWishlistUpdated, WISHLIST_STORAGE_KEY, WISHLIST_UPDATED_EVENT } from '../lib/shoppingState'
+import type { Product } from '../types/api'
 
 export const ShopWishlistBodyClass = 'shop'
 
+function readWishlistProducts() {
+  if (typeof window === 'undefined') return []
+  try {
+    const value = JSON.parse(localStorage.getItem(WISHLIST_STORAGE_KEY) ?? '[]') as Product[]
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
 export default function ShopWishlist() {
+  const { add, count } = useCart()
+  const wishlistCount = useWishlistCount()
+  const [wishlistItems, setWishlistItems] = useState<Product[]>(readWishlistProducts)
+
+  useEffect(() => {
+    function refresh() {
+      setWishlistItems(readWishlistProducts())
+    }
+
+    window.addEventListener('storage', refresh)
+    window.addEventListener(WISHLIST_UPDATED_EVENT, refresh)
+    refresh()
+
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener(WISHLIST_UPDATED_EVENT, refresh)
+    }
+  }, [])
+
+  function removeWishlistItem(productId: string) {
+    const next = wishlistItems.filter((product) => product._id !== productId)
+    setWishlistItems(next)
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(next))
+    notifyWishlistUpdated()
+  }
+
+  function addWishlistItemToCart(product: Product) {
+    if (product.stock < 1) return
+    add(product)
+  }
+
   return (
     <>
 <div id="page" className="hfeed page-wrapper">
@@ -30,12 +78,11 @@ export default function ShopWishlist() {
                         <a className="dropdown-toggle cart-icon" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           <div className="icons-cart">
                             <i className="icon-large-paper-bag"></i>
-                            <span className="cart-count">
-                              2
-                            </span>
+                            {count > 0 && <span className="cart-count live-count">{count}</span>}
                           </div>
                         </a>
                         <div className="dropdown-menu cart-popup">
+                          <MiniCartPopup />
                           <div className="cart-empty-wrap">
                             <ul className="cart-list">
                               <li className="empty">
@@ -623,9 +670,7 @@ export default function ShopWishlist() {
                           <a href="shop-wishlist.html">
                             <i className="icon-heart"></i>
                           </a>
-                          <span className="count-wishlist">
-                            1
-                          </span>
+                          {wishlistCount > 0 && <span className="count-wishlist live-count">{wishlistCount}</span>}
                         </div>
                         {/* Cart */}
                         <div className="mojuri-topcart dropdown light">
@@ -634,12 +679,11 @@ export default function ShopWishlist() {
                             <a className="dropdown-toggle cart-icon" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <div className="icons-cart">
                                 <i className="icon-large-paper-bag"></i>
-                                <span className="cart-count">
-                                  2
-                                </span>
+                                {count > 0 && <span className="cart-count live-count">{count}</span>}
                               </div>
                             </a>
                             <div className="dropdown-menu cart-popup">
+                              <MiniCartPopup />
                               <div className="cart-empty-wrap">
                                 <ul className="cart-list">
                                   <li className="empty">
@@ -762,6 +806,60 @@ export default function ShopWishlist() {
                 <div className="section-padding">
                   <div className="section-container p-l-r">
                     <div className="shop-wishlist">
+                      {wishlistItems.length > 0 ? (
+                        <table className="wishlist-items mojuri-live-wishlist">
+                          <tbody>
+                            {wishlistItems.map((product) => {
+                              const price = product.salePrice ?? product.price
+                              return (
+                                <tr className="wishlist-item" key={product._id}>
+                                  <td className="wishlist-item-remove">
+                                    <button type="button" className="live-wishlist-remove" onClick={() => removeWishlistItem(product._id)} aria-label={`Remove ${product.name} from wishlist`}>x</button>
+                                  </td>
+                                  <td className="wishlist-item-image">
+                                    <Link to={`/product/${product._id}`}>
+                                      <img width={600} height={600} src={product.thumbnail} alt={product.name} />
+                                    </Link>
+                                  </td>
+                                  <td className="wishlist-item-info">
+                                    <div className="wishlist-item-name">
+                                      <Link to={`/product/${product._id}`}>{product.name}</Link>
+                                    </div>
+                                    <div className="wishlist-item-price">
+                                      {product.salePrice ? (
+                                        <>
+                                          <del aria-hidden="true"><span>${product.price.toFixed(2)}</span></del>
+                                          <ins><span>${product.salePrice.toFixed(2)}</span></ins>
+                                        </>
+                                      ) : (
+                                        <span>${price.toFixed(2)}</span>
+                                      )}
+                                    </div>
+                                    <div className="wishlist-item-time">Saved in wishlist</div>
+                                  </td>
+                                  <td className="wishlist-item-actions">
+                                    <div className="wishlist-item-stock">
+                                      {product.stock > 0 ? 'In stock' : 'Out of stock'}
+                                    </div>
+                                    <div className="wishlist-item-add">
+                                      <div className="btn-add-to-cart" data-title={product.stock > 0 ? 'Add to cart' : 'Out of stock'}>
+                                        <button type="button" className="product-btn live-wishlist-add" disabled={product.stock < 1} onClick={() => addWishlistItemToCart(product)}>
+                                          {product.stock > 0 ? 'Add to cart' : 'Out of stock'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="mojuri-live-wishlist live-wishlist-empty">
+                          <p className="cart-empty">Your wishlist is currently empty.</p>
+                          <Link className="button" to="/shop">Return to shop</Link>
+                        </div>
+                      )}
                       <table className="wishlist-items">
                         <tbody>
                           <tr className="wishlist-item">

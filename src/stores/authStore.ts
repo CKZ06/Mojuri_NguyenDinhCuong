@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { apiRequest, clearToken, setToken } from '../lib/api'
+import { clearStoredShoppingState } from '../lib/shoppingState'
+import { useCartStore } from './cartStore'
 import type { User } from '../types/api'
 
 type AuthResult = { token: string; user: User }
@@ -31,6 +33,9 @@ export const useAuthStore = create<AuthState>()(
           return user
         } catch {
           clearToken()
+          clearStoredShoppingState()
+          useCartStore.getState().clear()
+          useCartStore.persist.clearStorage()
           set({ user: null, loading: false })
           return null
         }
@@ -55,6 +60,9 @@ export const useAuthStore = create<AuthState>()(
       },
       logout() {
         clearToken()
+        clearStoredShoppingState()
+        useCartStore.getState().clear()
+        useCartStore.persist.clearStorage()
         set({ user: null })
       },
     }),
