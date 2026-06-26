@@ -140,6 +140,26 @@
       "_id": "b71e4ea6-b8f6-4b37-ba7e-d8ddb6915c28",
       "createdAt": "2026-06-25T02:11:18.816Z",
       "updatedAt": "2026-06-25T02:11:18.816Z"
+    },
+    {
+      "name": "Bộ trang sức",
+      "slug": "medium",
+      "description": "",
+      "price": 1000,
+      "salePrice": 890,
+      "category": "Bracelets",
+      "thumbnail": "https://bizweb.dktcdn.net/100/202/714/files/chup-anh-trang-suc-dep-o-ha-noi-01.jpg?v=1509958041965",
+      "hoverImage": "",
+      "images": [],
+      "stock": 5,
+      "stockStatus": "in_stock",
+      "featured": false,
+      "isActive": true,
+      "rating": 0,
+      "reviewCount": 0,
+      "_id": "7e15af8f-14cf-425d-9529-39a18e2f590d",
+      "createdAt": "2026-06-26T04:19:10.048Z",
+      "updatedAt": "2026-06-26T04:19:22.141Z"
     }
   ],
   "categories": [
